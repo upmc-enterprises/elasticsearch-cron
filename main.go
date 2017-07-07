@@ -38,29 +38,29 @@ import (
 )
 
 var (
-	argAction       = flag.String("action", "", "action to perform (e.g. Create repository or snapshot")
-	argS3BucketName = flag.String("s3-bucket-name", "", "name of s3 bucket")
-	argElasticURL   = flag.String("elastic-url", "", "full dns url to elasticsearch")
-	argUsername     = flag.String("auth-username", "", "Authentication username")
-	argPassword     = flag.String("auth-password", "", "Authentication password")
+	argAction       = ""
+	argS3BucketName = ""
+	argElasticURL   = ""
+	argUsername     = ""
+	argPassword     = ""
 )
 
 // CreateSnapshotRepository creates a repository to place snapshots
-func CreateSnapshotRepository() {
+func CreateSnapshotRepository(elasticURL, s3BucketName, username, password string) {
 	logrus.Info("About to create Snapshot Repository...")
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	url := fmt.Sprintf("%s/_snapshot/%s", *argElasticURL, *argS3BucketName)
-	body := fmt.Sprintf("{ \"type\": \"s3\", \"settings\": { \"bucket\": \"%s\" } }", *argS3BucketName)
+	url := fmt.Sprintf("%s/_snapshot/%s", elasticURL, s3BucketName)
+	body := fmt.Sprintf("{ \"type\": \"s3\", \"settings\": { \"bucket\": \"%s\" } }", s3BucketName)
 	req, err := http.NewRequest("PUT", url, strings.NewReader(body))
 
 	// if authentication is specified, provide Auth to Client
-	if *argUsername != "" && *argPassword != "" {
-		logrus.Infof("Using basic Auth Credentials %s", *argUsername)
-		req.SetBasicAuth(*argUsername, *argPassword)
+	if username != "" && password != "" {
+		logrus.Infof("Using basic Auth Credentials %s", username)
+		req.SetBasicAuth(username, password)
 	}
 
 	resp, err := client.Do(req)
@@ -82,14 +82,14 @@ func CreateSnapshotRepository() {
 }
 
 // CreateSnapshot makes a snapshot of all indexes
-func CreateSnapshot() {
+func CreateSnapshot(elasticURL, s3BucketName, username, password string) {
 	logrus.Info("About to create snapshot...")
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	url := fmt.Sprintf("%s/_snapshot/%s/snapshot_%s?wait_for_completion=true", *argElasticURL, *argS3BucketName, fmt.Sprintf(time.Now().Format("2006-01-02-15-04-05")))
+	url := fmt.Sprintf("%s/_snapshot/%s/snapshot_%s?wait_for_completion=true", elasticURL, s3BucketName, fmt.Sprintf(time.Now().Format("2006-01-02-15-04-05")))
 
 	req, err := http.NewRequest("PUT", url, nil)
 	if err != nil {
@@ -98,9 +98,9 @@ func CreateSnapshot() {
 	}
 
 	// if authentication is specified, provide Auth to Client
-	if *argUsername != "" && *argPassword != "" {
-		logrus.Infof("Using basic Auth Credentials %s", *argUsername)
-		req.SetBasicAuth(*argUsername, *argPassword)
+	if username != "" && password != "" {
+		logrus.Infof("Using basic Auth Credentials %s", username)
+		req.SetBasicAuth(username, password)
 	}
 
 	resp, err := client.Do(req)
@@ -122,26 +122,32 @@ func CreateSnapshot() {
 }
 
 func main() {
+	flag.StringVar(&argAction, "action", "", "action to perform (e.g. Create repository or snapshot")
+	flag.StringVar(&argS3BucketName, "s3-bucket-name", "", "name of s3 bucket")
+	flag.StringVar(&argElasticURL, "elastic-url", "", "full dns url to elasticsearch")
+	flag.StringVar(&argUsername, "auth-username", "", "Authentication username")
+	flag.StringVar(&argPassword, "auth-password", "", "Authentication password")
+
 	flag.Parse()
 	log.Println("[elasticsearch-cron] is up and running!", time.Now())
 
 	// Validate
-	if *argElasticURL == "" {
-		logrus.Fatal("Missing ElasticURL parameter!")
+	if argS3BucketName == "" {
+		logrus.Fatalf("Missing S3 Bucket Name parameter! [%s]", argS3BucketName)
 	}
 
-	if *argS3BucketName == "" {
-		logrus.Fatal("Missing S3 Bucket Name parameter!")
+	if argElasticURL == "" {
+		logrus.Fatalf("Missing ElasticURL parameter! [%s]", argElasticURL)
 	}
 
-	switch *argAction {
+	switch argAction {
 	case "create-repository":
-		CreateSnapshotRepository()
+		CreateSnapshotRepository(argElasticURL, argS3BucketName, argUsername, argPassword)
 		break
 	case "snapshot":
-		CreateSnapshot()
+		CreateSnapshot(argElasticURL, argS3BucketName, argUsername, argPassword)
 		break
 	default:
-		logrus.Infof("Command passed [%s] not recognized.", *argAction)
+		logrus.Infof("Command passed [%s] not recognized.", argAction)
 	}
 }

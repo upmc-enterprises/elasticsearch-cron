@@ -6,4 +6,4 @@ RUN apk add --update ca-certificates && \
 
 ADD _output/bin/elasticsearch-cron /usr/local/bin
 
-CMD ["/bin/sh", "-c", "/usr/local/bin/elasticsearch-cron"]
+ENTRYPOINT ["elasticsearch-cron"]
