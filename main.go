@@ -54,7 +54,7 @@ func CreateSnapshotRepository(elasticURL, s3BucketName, username, password strin
 	}
 	client := &http.Client{Transport: tr}
 	url := fmt.Sprintf("%s/_snapshot/%s", elasticURL, s3BucketName)
-	body := fmt.Sprintf("{ \"type\": \"s3\", \"settings\": { \"bucket\": \"%s\" } }", s3BucketName)
+	body := fmt.Sprintf("{ \"type\": \"s3\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", s3BucketName)
 	req, err := http.NewRequest("PUT", url, strings.NewReader(body))
 
 	// if authentication is specified, provide Auth to Client
