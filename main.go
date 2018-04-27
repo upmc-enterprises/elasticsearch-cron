@@ -54,7 +54,7 @@ func CreateSnapshotRepository(elasticURL, s3BucketName, username, password strin
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	url := fmt.Sprintf("%s/_snapshot/%s", elasticURL, s3BucketName)
+	url := fmt.Sprintf("https://%s:9200/_snapshot/%s", elasticURL, s3BucketName)
 	body := fmt.Sprintf("{ \"type\": \"s3\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", s3BucketName)
 	req, err := http.NewRequest("PUT", url, strings.NewReader(body))
 
@@ -91,7 +91,7 @@ func CreateSnapshot(elasticURL, s3BucketName, username, password string) error {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	url := fmt.Sprintf("%s/_snapshot/%s/snapshot_%s?wait_for_completion=true", elasticURL, s3BucketName, fmt.Sprintf(time.Now().Format("2006-01-02-15-04-05")))
+	url := fmt.Sprintf("https://%s:9200/_snapshot/%s/snapshot_%s?wait_for_completion=true", elasticURL, s3BucketName, fmt.Sprintf(time.Now().Format("2006-01-02-15-04-05")))
 
 	req, err := http.NewRequest("PUT", url, nil)
 	if err != nil {
