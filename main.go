@@ -31,6 +31,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -46,7 +47,7 @@ var (
 )
 
 // CreateSnapshotRepository creates a repository to place snapshots
-func CreateSnapshotRepository(elasticURL, s3BucketName, username, password string) {
+func CreateSnapshotRepository(elasticURL, s3BucketName, username, password string) error {
 	logrus.Info("About to create Snapshot Repository...")
 
 	tr := &http.Transport{
@@ -63,26 +64,27 @@ func CreateSnapshotRepository(elasticURL, s3BucketName, username, password strin
 		req.SetBasicAuth(username, password)
 	}
 
+	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 
 	// Some other type of error?
 	if err != nil {
-		logrus.Error("Error attempting to create snapshot repository: ", err)
-		return
+		return fmt.Errorf("Error attempting to create snapshot repository: %v", err)
 	}
 
 	// Non 2XX status code
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := ioutil.ReadAll(resp.Body)
-		logrus.Errorf("Error creating snapshot repository [httpstatus: %d][url: %s][body: %s] ", resp.StatusCode, url, string(body))
-		return
+		return fmt.Errorf("Error creating snapshot repository [httpstatus: %d][url: %s][body: %s] ", resp.StatusCode, url, string(body))
 	}
 
 	logrus.Infof("Created snapshot repository!")
+
+	return nil
 }
 
 // CreateSnapshot makes a snapshot of all indexes
-func CreateSnapshot(elasticURL, s3BucketName, username, password string) {
+func CreateSnapshot(elasticURL, s3BucketName, username, password string) error {
 	logrus.Info("About to create snapshot...")
 
 	tr := &http.Transport{
@@ -93,8 +95,7 @@ func CreateSnapshot(elasticURL, s3BucketName, username, password string) {
 
 	req, err := http.NewRequest("PUT", url, nil)
 	if err != nil {
-		logrus.Error("Error attempting to create snapshot: ", err)
-		return
+		return fmt.Errorf("Error attempting to create snapshot: %v", err)
 	}
 
 	// if authentication is specified, provide Auth to Client
@@ -102,23 +103,23 @@ func CreateSnapshot(elasticURL, s3BucketName, username, password string) {
 		logrus.Infof("Using basic Auth Credentials %s", username)
 		req.SetBasicAuth(username, password)
 	}
-
+	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 
 	// Some other type of error?
 	if err != nil {
-		logrus.Error("Error attempting to create snapshot: ", err)
-		return
+		return fmt.Errorf("Error attempting to create snapshot: %v", err)
 	}
 
 	// Non 2XX status code
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := ioutil.ReadAll(resp.Body)
-		logrus.Errorf("Error creating snapshot [httpstatus: %d][url: %s] %s", resp.StatusCode, url, string(body))
-		return
+		return fmt.Errorf("Error creating snapshot [httpstatus: %d][url: %s] %s", resp.StatusCode, url, string(body))
 	}
 
 	logrus.Infof("Created snapshot!")
+
+	return nil
 }
 
 func main() {
@@ -142,12 +143,20 @@ func main() {
 
 	switch argAction {
 	case "create-repository":
-		CreateSnapshotRepository(argElasticURL, argS3BucketName, argUsername, argPassword)
+		if err := CreateSnapshotRepository(argElasticURL, argS3BucketName, argUsername, argPassword); err != nil {
+			logrus.Error(err)
+			os.Exit(1)
+		}
 		break
 	case "snapshot":
-		CreateSnapshot(argElasticURL, argS3BucketName, argUsername, argPassword)
+		if err := CreateSnapshot(argElasticURL, argS3BucketName, argUsername, argPassword); err != nil {
+			logrus.Error(err)
+			os.Exit(1)
+		}
 		break
 	default:
 		logrus.Infof("Command passed [%s] not recognized.", argAction)
 	}
+
+	os.Exit(0)
 }
