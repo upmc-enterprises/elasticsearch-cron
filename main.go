@@ -44,17 +44,25 @@ var (
 	argElasticURL   = ""
 	argUsername     = ""
 	argPassword     = ""
+	argUseSSL       = true
 )
 
 // CreateSnapshotRepository creates a repository to place snapshots
-func CreateSnapshotRepository(elasticURL, s3BucketName, username, password string) error {
+func CreateSnapshotRepository(elasticURL, s3BucketName, username, password string, useSSL bool) error {
 	logrus.Info("About to create Snapshot Repository...")
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
+
+	scheme := "https"
+
+	if !useSSL {
+		scheme = "http"
+	}
+
 	client := &http.Client{Transport: tr}
-	url := fmt.Sprintf("https://%s:9200/_snapshot/%s", elasticURL, s3BucketName)
+	url := fmt.Sprintf("%s://%s:9200/_snapshot/%s", scheme, elasticURL, s3BucketName)
 	body := fmt.Sprintf("{ \"type\": \"s3\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", s3BucketName)
 	req, err := http.NewRequest("PUT", url, strings.NewReader(body))
 
@@ -84,14 +92,21 @@ func CreateSnapshotRepository(elasticURL, s3BucketName, username, password strin
 }
 
 // CreateSnapshot makes a snapshot of all indexes
-func CreateSnapshot(elasticURL, s3BucketName, username, password string) error {
+func CreateSnapshot(elasticURL, s3BucketName, username, password string, useSSL bool) error {
 	logrus.Info("About to create snapshot...")
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
+
+	scheme := "https"
+
+	if !useSSL {
+		scheme = "http"
+	}
+
 	client := &http.Client{Transport: tr}
-	url := fmt.Sprintf("https://%s:9200/_snapshot/%s/snapshot_%s?wait_for_completion=true", elasticURL, s3BucketName, fmt.Sprintf(time.Now().Format("2006-01-02-15-04-05")))
+	url := fmt.Sprintf("%s://%s:9200/_snapshot/%s/snapshot_%s?wait_for_completion=true", scheme, elasticURL, s3BucketName, fmt.Sprintf(time.Now().Format("2006-01-02-15-04-05")))
 
 	req, err := http.NewRequest("PUT", url, nil)
 	if err != nil {
@@ -128,6 +143,7 @@ func main() {
 	flag.StringVar(&argElasticURL, "elastic-url", "", "full dns url to elasticsearch")
 	flag.StringVar(&argUsername, "auth-username", "", "Authentication username")
 	flag.StringVar(&argPassword, "auth-password", "", "Authentication password")
+	flag.BoolVar(&argUseSSL, "use-ssl", true, "enable SSL or not")
 
 	flag.Parse()
 	log.Println("[elasticsearch-cron] is up and running!", time.Now())
@@ -143,13 +159,13 @@ func main() {
 
 	switch argAction {
 	case "create-repository":
-		if err := CreateSnapshotRepository(argElasticURL, argS3BucketName, argUsername, argPassword); err != nil {
+		if err := CreateSnapshotRepository(argElasticURL, argS3BucketName, argUsername, argPassword, argUseSSL); err != nil {
 			logrus.Error(err)
 			os.Exit(1)
 		}
 		break
 	case "snapshot":
-		if err := CreateSnapshot(argElasticURL, argS3BucketName, argUsername, argPassword); err != nil {
+		if err := CreateSnapshot(argElasticURL, argS3BucketName, argUsername, argPassword, argUseSSL); err != nil {
 			logrus.Error(err)
 			os.Exit(1)
 		}
