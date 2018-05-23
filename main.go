@@ -39,16 +39,17 @@ import (
 )
 
 var (
-	argAction       = ""
-	argS3BucketName = ""
-	argElasticURL   = ""
-	argUsername     = ""
-	argPassword     = ""
-	argUseSSL       = true
+	argAction     = ""
+	argRepoType   = ""
+	argBucketName = ""
+	argElasticURL = ""
+	argUsername   = ""
+	argPassword   = ""
+	argUseSSL     = true
 )
 
 // CreateSnapshotRepository creates a repository to place snapshots
-func CreateSnapshotRepository(elasticURL, s3BucketName, username, password string, useSSL bool) error {
+func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, password string, useSSL bool) error {
 	logrus.Info("About to create Snapshot Repository...")
 
 	tr := &http.Transport{
@@ -62,8 +63,8 @@ func CreateSnapshotRepository(elasticURL, s3BucketName, username, password strin
 	}
 
 	client := &http.Client{Transport: tr}
-	url := fmt.Sprintf("%s://%s:9200/_snapshot/%s", scheme, elasticURL, s3BucketName)
-	body := fmt.Sprintf("{ \"type\": \"s3\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", s3BucketName)
+	url := fmt.Sprintf("%s://%s:9200/_snapshot/%s", scheme, elasticURL, bucketName)
+	body := fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", repoType, bucketName)
 	req, err := http.NewRequest("PUT", url, strings.NewReader(body))
 
 	// if authentication is specified, provide Auth to Client
@@ -92,7 +93,7 @@ func CreateSnapshotRepository(elasticURL, s3BucketName, username, password strin
 }
 
 // CreateSnapshot makes a snapshot of all indexes
-func CreateSnapshot(elasticURL, s3BucketName, username, password string, useSSL bool) error {
+func CreateSnapshot(elasticURL, bucketName, username, password string, useSSL bool) error {
 	logrus.Info("About to create snapshot...")
 
 	tr := &http.Transport{
@@ -106,7 +107,7 @@ func CreateSnapshot(elasticURL, s3BucketName, username, password string, useSSL 
 	}
 
 	client := &http.Client{Transport: tr}
-	url := fmt.Sprintf("%s://%s:9200/_snapshot/%s/snapshot_%s?wait_for_completion=true", scheme, elasticURL, s3BucketName, fmt.Sprintf(time.Now().Format("2006-01-02-15-04-05")))
+	url := fmt.Sprintf("%s://%s:9200/_snapshot/%s/snapshot_%s?wait_for_completion=true", scheme, elasticURL, bucketName, fmt.Sprintf(time.Now().Format("2006-01-02-15-04-05")))
 
 	req, err := http.NewRequest("PUT", url, nil)
 	if err != nil {
@@ -139,7 +140,8 @@ func CreateSnapshot(elasticURL, s3BucketName, username, password string, useSSL 
 
 func main() {
 	flag.StringVar(&argAction, "action", "", "action to perform (e.g. Create repository or snapshot")
-	flag.StringVar(&argS3BucketName, "s3-bucket-name", "", "name of s3 bucket")
+	flag.StringVar(&argRepoType, "repo-type", "s3", "type of repository, s3 or gcs")
+	flag.StringVar(&argBucketName, "bucket-name", "", "name of s3 or gcs bucket")
 	flag.StringVar(&argElasticURL, "elastic-url", "", "full dns url to elasticsearch")
 	flag.StringVar(&argUsername, "auth-username", "", "Authentication username")
 	flag.StringVar(&argPassword, "auth-password", "", "Authentication password")
@@ -149,8 +151,8 @@ func main() {
 	log.Println("[elasticsearch-cron] is up and running!", time.Now())
 
 	// Validate
-	if argS3BucketName == "" {
-		logrus.Fatalf("Missing S3 Bucket Name parameter! [%s]", argS3BucketName)
+	if argBucketName == "" {
+		logrus.Fatalf("Missing S3 Bucket Name parameter! [%s]", argBucketName)
 	}
 
 	if argElasticURL == "" {
@@ -159,13 +161,13 @@ func main() {
 
 	switch argAction {
 	case "create-repository":
-		if err := CreateSnapshotRepository(argElasticURL, argS3BucketName, argUsername, argPassword, argUseSSL); err != nil {
+		if err := CreateSnapshotRepository(argElasticURL, argRepoType, argBucketName, argUsername, argPassword, argUseSSL); err != nil {
 			logrus.Error(err)
 			os.Exit(1)
 		}
 		break
 	case "snapshot":
-		if err := CreateSnapshot(argElasticURL, argS3BucketName, argUsername, argPassword, argUseSSL); err != nil {
+		if err := CreateSnapshot(argElasticURL, argBucketName, argUsername, argPassword, argUseSSL); err != nil {
 			logrus.Error(err)
 			os.Exit(1)
 		}
