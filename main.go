@@ -47,13 +47,12 @@ var (
 	argPassword   = ""
 	argRepoAccessKey = ""
 	argRepoSecretKey = ""
-	argRepoRegion = "eu-west-1"
+	argRepoRegion = ""
 	argUseSSL     = true
-	argUseRepoAuth = false
 )
 
 // CreateSnapshotRepository creates a repository to place snapshots
-func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, password string, useSSL, repoAuth bool, repoAccessKey, repoSecretKey, repoRegion string) error {
+func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, password string, useSSL, repoAccessKey, repoSecretKey, repoRegion string) error {
 	logrus.Info("About to create Snapshot Repository...")
 
 	tr := &http.Transport{
@@ -69,7 +68,7 @@ func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, passwo
 	client := &http.Client{Transport: tr}
 	url := fmt.Sprintf("%s://%s:9200/_snapshot/%s", scheme, elasticURL, bucketName)
 	body := fmt.Sprintf("")
-	if repoAuth {
+	if repoAccessKey!="" && repoSecretKey!="" {
 		body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"region\": \"%s\", \"access_key\": \"%s\", \"secret_key\": \"%s\", \"server_side_encryption\": \"true\"  } }", repoType, bucketName, repoRegion, repoAccessKey, repoSecretKey)
 	} else {
 		body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", repoType, bucketName)
@@ -159,7 +158,6 @@ func main() {
 	flag.StringVar(&argRepoRegion, "repo-region", "eu-west-1", "Repository Region, default: eu-west-1")
 	flag.StringVar(&argRepoSecretKey,"repo-auth-secret-key", "", "Repository Authentication secret key")
 	flag.BoolVar(&argUseSSL, "use-ssl", true, "enable SSL or not")
-	flag.BoolVar(&argUseRepoAuth, "use-repo-auth", false, "Enable Repository Authentication via Access/ Secret keys or not")
 
 	flag.Parse()
 	log.Println("[elasticsearch-cron] is up and running!", time.Now())
@@ -175,7 +173,7 @@ func main() {
 
 	switch argAction {
 	case "create-repository":
-		if err := CreateSnapshotRepository(argElasticURL, argRepoType, argBucketName, argUsername, argPassword, argUseSSL, argUseRepoAuth, argRepoAccessKey, argRepoSecretKey, argRepoRegion); err != nil {
+		if err := CreateSnapshotRepository(argElasticURL, argRepoType, argBucketName, argUsername, argPassword, argUseSSL, argRepoAccessKey, argRepoSecretKey, argRepoRegion); err != nil {
 			logrus.Error(err)
 			os.Exit(1)
 		}
