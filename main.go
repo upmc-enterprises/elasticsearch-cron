@@ -45,11 +45,14 @@ var (
 	argElasticURL = ""
 	argUsername   = ""
 	argPassword   = ""
+	argRepoAccessKey = ""
+	argRepoSecretKey = ""
+	argRepoRegion = ""
 	argUseSSL     = true
 )
 
 // CreateSnapshotRepository creates a repository to place snapshots
-func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, password string, useSSL bool) error {
+func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, password string, useSSL, repoAccessKey, repoSecretKey, repoRegion string) error {
 	logrus.Info("About to create Snapshot Repository...")
 
 	tr := &http.Transport{
@@ -64,7 +67,13 @@ func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, passwo
 
 	client := &http.Client{Transport: tr}
 	url := fmt.Sprintf("%s://%s:9200/_snapshot/%s", scheme, elasticURL, bucketName)
-	body := fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", repoType, bucketName)
+	body := fmt.Sprintf("")
+	if repoAccessKey!="" && repoSecretKey!="" {
+		body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"region\": \"%s\", \"access_key\": \"%s\", \"secret_key\": \"%s\", \"server_side_encryption\": \"true\"  } }", repoType, bucketName, repoRegion, repoAccessKey, repoSecretKey)
+	} else {
+		body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", repoType, bucketName)
+	}
+
 	req, err := http.NewRequest("PUT", url, strings.NewReader(body))
 
 	// if authentication is specified, provide Auth to Client
@@ -145,6 +154,9 @@ func main() {
 	flag.StringVar(&argElasticURL, "elastic-url", "", "full dns url to elasticsearch")
 	flag.StringVar(&argUsername, "auth-username", "", "Authentication username")
 	flag.StringVar(&argPassword, "auth-password", "", "Authentication password")
+	flag.StringVar(&argRepoAccessKey, "repo-auth-access-key", "", "Repository Authentication access key")
+	flag.StringVar(&argRepoRegion, "repo-region", "eu-west-1", "Repository Region, default: eu-west-1")
+	flag.StringVar(&argRepoSecretKey,"repo-auth-secret-key", "", "Repository Authentication secret key")
 	flag.BoolVar(&argUseSSL, "use-ssl", true, "enable SSL or not")
 
 	flag.Parse()
@@ -161,7 +173,7 @@ func main() {
 
 	switch argAction {
 	case "create-repository":
-		if err := CreateSnapshotRepository(argElasticURL, argRepoType, argBucketName, argUsername, argPassword, argUseSSL); err != nil {
+		if err := CreateSnapshotRepository(argElasticURL, argRepoType, argBucketName, argUsername, argPassword, argUseSSL, argRepoAccessKey, argRepoSecretKey, argRepoRegion); err != nil {
 			logrus.Error(err)
 			os.Exit(1)
 		}
