@@ -52,7 +52,7 @@ var (
 )
 
 // CreateSnapshotRepository creates a repository to place snapshots
-func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, password string, useSSL, repoAccessKey, repoSecretKey, repoRegion string) error {
+func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, password string, useSSL bool, repoAccessKey, repoSecretKey, repoRegion string) error {
 	logrus.Info("About to create Snapshot Repository...")
 
 	tr := &http.Transport{
@@ -68,7 +68,9 @@ func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, passwo
 	client := &http.Client{Transport: tr}
 	url := fmt.Sprintf("%s://%s:9200/_snapshot/%s", scheme, elasticURL, bucketName)
 	body := fmt.Sprintf("")
-	if repoAccessKey!="" && repoSecretKey!="" {
+	if repoType=="azure" {
+		body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"container\": \"%s\", \"compress\": \"true\"  } }", repoType, bucketName)
+	} else if repoAccessKey!="" && repoSecretKey!="" {
 		body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"region\": \"%s\", \"access_key\": \"%s\", \"secret_key\": \"%s\", \"server_side_encryption\": \"true\"  } }", repoType, bucketName, repoRegion, repoAccessKey, repoSecretKey)
 	} else {
 		body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", repoType, bucketName)
@@ -149,8 +151,8 @@ func CreateSnapshot(elasticURL, bucketName, username, password string, useSSL bo
 
 func main() {
 	flag.StringVar(&argAction, "action", "", "action to perform (e.g. Create repository or snapshot")
-	flag.StringVar(&argRepoType, "repo-type", "s3", "type of repository, s3 or gcs")
-	flag.StringVar(&argBucketName, "bucket-name", "", "name of s3 or gcs bucket")
+	flag.StringVar(&argRepoType, "repo-type", "s3", "type of repository, s3, gcs, azure")
+	flag.StringVar(&argBucketName, "bucket-name", "", "name of s3, gcs, azure bucket")
 	flag.StringVar(&argElasticURL, "elastic-url", "", "full dns url to elasticsearch")
 	flag.StringVar(&argUsername, "auth-username", "", "Authentication username")
 	flag.StringVar(&argPassword, "auth-password", "", "Authentication password")
@@ -164,7 +166,7 @@ func main() {
 
 	// Validate
 	if argBucketName == "" {
-		logrus.Fatalf("Missing S3 Bucket Name parameter! [%s]", argBucketName)
+		logrus.Fatalf("Missing bucket Name parameter! [%s]", argBucketName)
 	}
 
 	if argElasticURL == "" {
