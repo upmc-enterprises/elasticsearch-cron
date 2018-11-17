@@ -70,10 +70,12 @@ func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, passwo
 	body := fmt.Sprintf("")
 	if repoType=="azure" {
 		body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"container\": \"%s\", \"compress\": \"true\"  } }", repoType, bucketName)
-	} else if repoAccessKey!="" && repoSecretKey!="" {
-		body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"region\": \"%s\", \"access_key\": \"%s\", \"secret_key\": \"%s\", \"server_side_encryption\": \"true\"  } }", repoType, bucketName, repoRegion, repoAccessKey, repoSecretKey)
-	} else {
-		body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", repoType, bucketName)
+	} else if repoType=="s3" || repoType=="gcs" {
+		if repoAccessKey!="" && repoSecretKey!="" {
+			body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"region\": \"%s\", \"access_key\": \"%s\", \"secret_key\": \"%s\", \"server_side_encryption\": \"true\"  } }", repoType, bucketName, repoRegion, repoAccessKey, repoSecretKey)
+		} else {
+			body = fmt.Sprintf("{ \"type\": \"%s\", \"settings\": { \"bucket\": \"%s\", \"server_side_encryption\": \"true\" } }", repoType, bucketName)
+		}
 	}
 
 	req, err := http.NewRequest("PUT", url, strings.NewReader(body))
