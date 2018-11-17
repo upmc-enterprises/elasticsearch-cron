@@ -166,7 +166,7 @@ func main() {
 
 	// Validate
 	if argBucketName == "" {
-		logrus.Fatalf("Missing bucket Name parameter! [%s]", argBucketName)
+		logrus.Fatalf("Missing Bucket Name parameter! [%s]", argBucketName)
 	}
 
 	if argElasticURL == "" {
