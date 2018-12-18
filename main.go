@@ -52,7 +52,7 @@ var (
 )
 
 // CreateSnapshotRepository creates a repository to place snapshots
-func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, password string, useSSL, repoAccessKey, repoSecretKey, repoRegion string) error {
+func CreateSnapshotRepository(elasticURL, repoType, bucketName, username, password string, useSSL bool, repoAccessKey, repoSecretKey, repoRegion string) error {
 	logrus.Info("About to create Snapshot Repository...")
 
 	tr := &http.Transport{
