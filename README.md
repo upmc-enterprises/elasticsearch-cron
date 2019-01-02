@@ -7,8 +7,8 @@ CronJob container to perform snapshots of an elasticsearch cluster
 The container takes the following args:
 
 - action: Action to perform (repository or snapshot)
-- repo-type: Type of repository, s3 or gcs.
-- bucket-name: Name of s3 or gcs bucket
+- repo-type: Type of repository, s3, gcs, azure.
+- bucket-name: Name of s3, gcs, azure bucket
 - elastic-url: Full dns url to elasticsearch
 - auth-username: Authentication username (if applicable)
 - auth-password: Authentication password (if applicable)
