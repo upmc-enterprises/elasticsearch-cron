@@ -153,7 +153,7 @@ func CreateSnapshot(elasticURL, bucketName, username, password string, useSSL bo
 
 func main() {
 	flag.StringVar(&argAction, "action", "", "action to perform (e.g. Create repository or snapshot")
-	flag.StringVar(&argRepoType, "repo-type", "s3", "type of repository, s3, gcs, azure")
+	flag.StringVar(&argRepoType, "repo-type", "", "type of repository, s3, gcs, azure")
 	flag.StringVar(&argBucketName, "bucket-name", "", "name of s3, gcs, azure bucket")
 	flag.StringVar(&argElasticURL, "elastic-url", "", "full dns url to elasticsearch")
 	flag.StringVar(&argUsername, "auth-username", "", "Authentication username")
